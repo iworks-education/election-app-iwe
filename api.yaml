@@ -1,0 +1,22 @@
+openapi: "3.0.1"
+info:
+  title: "Election API"
+paths:
+  /vote:
+    post:
+      responses:
+        default:
+          description: "Kinesis response"
+      x-amazon-apigateway-integration:
+        integrationSubtype: "Kinesis-PutRecord"
+        credentials:
+          Fn::GetAtt: [MyHttpApiRole, Arn]
+        requestParameters:
+          StreamName:
+            Ref: KinesisStream
+          Data: "$request.body.Data"
+          PartitionKey: "$request.body.pk"
+        payloadFormatVersion: "1.0"
+        type: "aws_proxy"
+        connectionType: "INTERNET"
+x-amazon-apigateway-importexport-version: "1.0"

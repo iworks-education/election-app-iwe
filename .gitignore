@@ -1,0 +1,14 @@
+.aws-sam/
+packaged.yaml
+.classpath
+.project
+.settings/
+election-api/target
+pipeline/target
+pipeline/cdk.out
+.DS_Store
+.idea
+election-api/election-api.iml
+election-api/.DS_Store
+pipeline/.DS_Store
+pipeline/pipeline.iml

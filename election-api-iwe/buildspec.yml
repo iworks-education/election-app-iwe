@@ -1,0 +1,37 @@
+# ~/environment/sam-app/buildspec.yml
+
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      java: corretto11
+    commands:
+      # Install packages or any pre-reqs in this phase.
+      # Upgrading SAM CLI to latest version
+      # - pip3 install --upgrade aws-sam-cli
+      # - sam --version
+  pre_build:
+    commands:
+      # - export TAG=${CODEBUILD_RESOLVED_SOURCE_VERSION}
+      # - aws codeguru-reviewer create-code-review --name codeguru-demo-master-$TAG --repository-association-arn arn:aws:codeguru-reviewer:us-east-1:333692743073:association:e96ad80d-e119-40bd-85eb-7ecb50b47563 --type RepositoryAnalysis={RepositoryHead={BranchName=master}}
+
+  build:
+    commands:
+      # Use Build phase to build your artifacts (compile, etc.)
+      - cd election-api
+      - mvn package
+      - sam build
+
+  post_build:
+    commands:
+      # Use Post-Build for notifications, git tags, upload artifacts to S3
+      - sam package --s3-bucket $PACKAGE_BUCKET --output-template-file packaged.yaml
+artifacts:
+  discard-paths: yes
+  files:
+    # List of local artifacts that will be passed down the pipeline
+    - election-api/packaged.yaml
+
+cache:
+  paths:
+    - '/root/.m2/**/*'

@@ -1,0 +1,99 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Election API
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 20
+
+Resources:
+
+  MyHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefinitionBody:
+        'Fn::Transform':
+          Name: 'AWS::Include'
+          Parameters:
+            Location: './api.yaml'
+
+  MyHttpApiRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: "apigateway.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyName: ApiDirectWriteKinesis
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              Action:
+                - kinesis:PutRecord
+              Effect: Allow
+              Resource:
+                - !GetAtt KinesisStream.Arn
+
+  # Define an AWS Kinesis Data Stream
+  KinesisStream:
+    Type: "AWS::Kinesis::Stream"
+    Properties:
+      ShardCount: 1
+
+  # Define and attach a consumer to the Kinesis Data Stream
+  ApplicationConsumer:
+    Type: "AWS::Kinesis::StreamConsumer"
+    Properties:
+      StreamARN: !GetAtt KinesisStream.Arn
+      ConsumerName: ApplicationConsumer
+
+  ElectionHttpApi:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: election-api
+      Handler: com.aws.handler.VoteHandler::handleRequest
+      Runtime: java11
+      MemorySize: 512
+      Tracing: Active
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref VoteTable
+        - CloudWatchLambdaInsightsExecutionRolePolicy
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref VoteTable
+      Events:
+        Stream:
+          Type: Kinesis
+          Properties:
+            Stream: !GetAtt ApplicationConsumer.ConsumerARN
+            StartingPosition: LATEST
+            BatchSize: 100
+            MaximumBatchingWindowInSeconds: 1
+            ParallelizationFactor: 10
+
+  VoteTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Vote
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: "candidate"
+          AttributeType: S
+      KeySchema:
+        - AttributeName: "candidate"
+          KeyType: HASH
+
+Outputs:
+  ApiEndpoint:
+    Description: "Election HTTP API endpoint URL"
+    Value: !Sub "https://${MyHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
