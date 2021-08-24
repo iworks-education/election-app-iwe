@@ -57,7 +57,7 @@ Resources:
   ElectionHttpApi:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: election-api
+      CodeUri: election-api-iwe
       Handler: com.aws.handler.VoteHandler::handleRequest
       Runtime: java11
       MemorySize: 512
