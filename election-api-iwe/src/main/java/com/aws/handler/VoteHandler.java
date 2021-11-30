@@ -22,7 +22,6 @@ public class VoteHandler implements RequestHandler<KinesisEvent, Void> {
     {
         if (client == null) {
             client = DynamoDbClient.builder()
-                    .region(Region.US_EAST_1)
                     .httpClient(UrlConnectionHttpClient.builder().build())
                     .build();
         }
